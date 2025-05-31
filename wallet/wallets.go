@@ -2,9 +2,9 @@ package wallet
 
 import (
 	// "crypto/elliptic"
-	"encoding/json"
 	"log"
 	"os"
+	"google.golang.org/protobuf/proto"
 )
 
 const walletFile = "./tmp/wallets.data"
@@ -69,13 +69,15 @@ func (ws Wallets) GetWallet(address string) Wallet {
 // }
 
 func (ws *Wallets) SaveFile() {
-    serialized := make(map[string]SerializableWallet)
-
-    for addr, wallet := range ws.Wallets {
-        serialized[addr] = wallet.ToSerializable()
+    serialized := &SerializableWallets{
+        Wallets: make(map[string]*SerializableWallet),
     }
 
-    data, err := json.Marshal(serialized)
+    for addr, wallet := range ws.Wallets {
+        serialized.Wallets[addr] = wallet.ToProtobuf()
+    }
+
+    data, err := proto.Marshal(serialized)
     if err != nil {
         log.Panic(err)
     }
@@ -96,15 +98,15 @@ func (ws *Wallets) LoadFile() error {
         return err
     }
 
-    var serialized map[string]SerializableWallet
-    err = json.Unmarshal(data, &serialized)
+    serialized := &SerializableWallets{}
+    err = proto.Unmarshal(data, serialized)
     if err != nil {
         return err
     }
 
     wallets := make(map[string]*Wallet)
-    for addr, sw := range serialized {
-        wallets[addr] = sw.ToWallet()
+    for addr, sw := range serialized.Wallets {
+        wallets[addr] = FromProtobuf(sw)
     }
 
     ws.Wallets = wallets

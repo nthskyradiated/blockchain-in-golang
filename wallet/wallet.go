@@ -24,11 +24,6 @@ type Wallet struct {
 	PublicKey []byte
 }
 
-// * Added for the modified saveFile and loadFile methods
-type SerializableWallet struct {
-    PrivateKeyD []byte
-    PublicKey   []byte
-}
 
 func (w Wallet) Address() []byte {
 	publicKeyHash := PublicKeyHash(w.PublicKey)
@@ -86,14 +81,14 @@ func Checksum(payload []byte) []byte {
 	return hash[:checksumLength]
 }
 
-func (w *Wallet) ToSerializable() SerializableWallet {
-    return SerializableWallet{
+func (w *Wallet) ToProtobuf() *SerializableWallet {
+    return &SerializableWallet{
         PrivateKeyD: w.PrivateKey.D.Bytes(),
         PublicKey:   w.PublicKey,
     }
 }
 
-func (sw *SerializableWallet) ToWallet() *Wallet {
+func FromProtobuf(sw *SerializableWallet) *Wallet {
     curve := elliptic.P256()
     x, y := elliptic.Unmarshal(curve, sw.PublicKey)
 
