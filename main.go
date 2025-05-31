@@ -6,7 +6,6 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-
 	"github.com/nthskyradiated/blockchain-in-golang/blockchain"
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 )
@@ -17,17 +16,16 @@ type CommandLine struct {
 
 func main() {
 	defer os.Exit(0)
-	bc := blockchain.NewBlockChain()
-	defer bc.Database.Close()
-
-	cli := CommandLine{bc}
+	cli := CommandLine{}
 	cli.Run()
 }
 
 func (cli *CommandLine) printUsage() {
 	fmt.Println("Usage:")
-	fmt.Println("  add -block BLOCK_DATA - Add block to blockchain")
+	fmt.Println("  getbalance -address ADDRESS - Get balance of an address")
+	fmt.Println("  createblockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS")
 	fmt.Println("  print - Print the blockchain")
+	fmt.Println("  send -from FROM -to TO -amount AMOUNT - Send amount from one address to another")
 }
 
 func (cli *CommandLine) validateArgs() {
@@ -38,7 +36,11 @@ func (cli *CommandLine) validateArgs() {
 }
 
 func (cli *CommandLine) printChain() {
-	iter := cli.blockchain.Iterator()
+
+	chain := blockchain.ContinueBlockChain("")
+	defer chain.Database.Close()
+	iter := chain.Iterator()
+	fmt.Println("printing")
 	for {
 		block := iter.Next()
 		fmt.Printf("Prev. hash: %x\n", block.PrevHash)
@@ -52,22 +54,64 @@ func (cli *CommandLine) printChain() {
 	}
 }
 
-func (cli *CommandLine) addBlock(data string) {
-	cli.blockchain.AddBlock(data)
-	fmt.Println("Added Block!")
+
+func (cli *CommandLine) createblockchain(address string) {
+
+	chain := blockchain.NewBlockChain(address)
+	chain.Database.Close()
+	fmt.Println("Blockchain created successfully!")
+}
+
+func (cli *CommandLine) getbalance(address string) {
+
+	chain := blockchain.ContinueBlockChain(address)
+	defer chain.Database.Close()
+
+	balance := 0
+	UTXOs := chain.FindUTXOutputs(address)
+
+	for _, out := range UTXOs {
+		balance += out.Value
+	}
+	fmt.Printf("Balance of %s: %d\n", address, balance)
+}
+
+func (cli *CommandLine) send(from, to string, amount int) {
+
+	chain := blockchain.ContinueBlockChain(from)
+	defer chain.Database.Close()
+
+	tx := blockchain.NewTransaction(from, to, amount, chain)
+	chain.AddBlock([]*blockchain.Transaction{tx})
+	fmt.Println("Transaction successful!")
 }
 
 func (cli *CommandLine) Run() {
 	cli.validateArgs()
-
-	addBlockCmd := flag.NewFlagSet("add", flag.ExitOnError)
+	getBalanceCmd := flag.NewFlagSet("getbalance", flag.ExitOnError)
+	createBlockchainCmd := flag.NewFlagSet("createblockchain", flag.ExitOnError)
+	sendCmd := flag.NewFlagSet("send", flag.ExitOnError)
 	printChainCmd := flag.NewFlagSet("print", flag.ExitOnError)
-	addBlockData := addBlockCmd.String("block", "", "Block data")
+
+
+	getBalanceAddress := getBalanceCmd.String("address", "", "Address to get balance of")
+	createBlockchainAddress := createBlockchainCmd.String("address", "", "Address to send genesis block reward to")
+	sendFrom := sendCmd.String("from", "", "Address to send from")
+	sendTo := sendCmd.String("to", "", "Address to send to")
+	sendAmount := sendCmd.Int("amount", 0, "Amount to send")
 
 	switch os.Args[1] {
 
-	case "add":
-		err := addBlockCmd.Parse(os.Args[2:])
+	case "getbalance":
+		err := getBalanceCmd.Parse(os.Args[2:])
+		utils.HandleError(err)
+	
+	case "createblockchain":
+		err := createBlockchainCmd.Parse(os.Args[2:])
+		utils.HandleError(err)
+
+	case "send":
+		err := sendCmd.Parse(os.Args[2:])
 		utils.HandleError(err)
 
 	case "print":
@@ -79,16 +123,31 @@ func (cli *CommandLine) Run() {
 		runtime.Goexit()
 	}
 
+	if getBalanceCmd.Parsed() {
+		if *getBalanceAddress == "" {
+			getBalanceCmd.Usage()
+			runtime.Goexit()
+		}
+		cli.getbalance(*getBalanceAddress)
+	}
+
+	if createBlockchainCmd.Parsed() {
+		if *createBlockchainAddress == "" {
+			createBlockchainCmd.Usage()
+			runtime.Goexit()
+		}
+		cli.createblockchain(*createBlockchainAddress)
+	}
+
 	if printChainCmd.Parsed() {
 		cli.printChain()
 	}
 
-	if addBlockCmd.Parsed() {
-		if *addBlockData == "" {
-			addBlockCmd.Usage()
+	if sendCmd.Parsed() {
+		if *sendFrom == "" || *sendTo == "" || *sendAmount <= 0 {
+			sendCmd.Usage()
 			runtime.Goexit()
 		}
-		cli.addBlock(*addBlockData)
+		cli.send(*sendFrom, *sendTo, *sendAmount)
 	}
-
 }
