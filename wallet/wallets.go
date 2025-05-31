@@ -1,9 +1,8 @@
 package wallet
 
 import (
-	"bytes"
 	// "crypto/elliptic"
-	"encoding/gob"
+	"encoding/json"
 	"log"
 	"os"
 )
@@ -12,11 +11,6 @@ const walletFile = "./tmp/wallets.data"
 
 type Wallets struct {
 	Wallets map[string]*Wallet
-}
-
-// * Added for the modified saveFile and loadFile methods
-type SerializedWallets struct {
-	Wallets map[string]SerializedWallet
 }
 
 func NewWallets() (*Wallets, error) {
@@ -74,58 +68,47 @@ func (ws Wallets) GetWallet(address string) Wallet {
 // 	return nil
 // }
 
-func (ws *Wallets) LoadFile() error {
-	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
-		return err
-	}
+func (ws *Wallets) SaveFile() {
+    serialized := make(map[string]SerializableWallet)
 
-	fileContent, err := os.ReadFile(walletFile)
-	if err != nil {
-		return err
-	}
+    for addr, wallet := range ws.Wallets {
+        serialized[addr] = wallet.ToSerializable()
+    }
 
-	var serialized SerializedWallets
-	decoder := gob.NewDecoder(bytes.NewReader(fileContent))
-	err = decoder.Decode(&serialized)
-	if err != nil {
-		return err
-	}
+    data, err := json.Marshal(serialized)
+    if err != nil {
+        log.Panic(err)
+    }
 
-	wallets := make(map[string]*Wallet)
-	for addr, data := range serialized.Wallets {
-		wallet := &Wallet{}
-		wallet.LoadFromBytes(data.PrivateKey, data.PublicKey)
-		wallets[addr] = wallet
-	}
-
-	ws.Wallets = wallets
-	return nil
+    err = os.WriteFile(walletFile, data, 0644)
+    if err != nil {
+        log.Panic(err)
+    }
 }
 
-func (ws *Wallets) SaveFile() {
-	serialized := SerializedWallets{
-		Wallets: make(map[string]SerializedWallet),
-	}
+func (ws *Wallets) LoadFile() error {
+    if _, err := os.Stat(walletFile); os.IsNotExist(err) {
+        return err
+    }
 
-	for addr, wallet := range ws.Wallets {
-		privKey, pubKey := wallet.Bytes()
-		serialized.Wallets[addr] = SerializedWallet{
-			PrivateKey: privKey,
-			PublicKey:  pubKey,
-		}
-	}
+    data, err := os.ReadFile(walletFile)
+    if err != nil {
+        return err
+    }
 
-	var content bytes.Buffer
-	encoder := gob.NewEncoder(&content)
-	err := encoder.Encode(serialized)
-	if err != nil {
-		log.Panic(err)
-	}
+    var serialized map[string]SerializableWallet
+    err = json.Unmarshal(data, &serialized)
+    if err != nil {
+        return err
+    }
 
-	err = os.WriteFile(walletFile, content.Bytes(), 0644)
-	if err != nil {
-		log.Panic(err)
-	}
+    wallets := make(map[string]*Wallet)
+    for addr, sw := range serialized {
+        wallets[addr] = sw.ToWallet()
+    }
+
+    ws.Wallets = wallets
+    return nil
 }
 
 // ! doesn't work. kept for reference
