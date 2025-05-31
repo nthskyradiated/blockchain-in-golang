@@ -25,9 +25,9 @@ type Wallet struct {
 }
 
 // * Added for the modified saveFile and loadFile methods
-type SerializedWallet struct {
-	PrivateKey []byte
-	PublicKey  []byte
+type SerializableWallet struct {
+    PrivateKeyD []byte
+    PublicKey   []byte
 }
 
 func (w Wallet) Address() []byte {
@@ -86,22 +86,45 @@ func Checksum(payload []byte) []byte {
 	return hash[:checksumLength]
 }
 
+func (w *Wallet) ToSerializable() SerializableWallet {
+    return SerializableWallet{
+        PrivateKeyD: w.PrivateKey.D.Bytes(),
+        PublicKey:   w.PublicKey,
+    }
+}
+
+func (sw *SerializableWallet) ToWallet() *Wallet {
+    curve := elliptic.P256()
+    x, y := elliptic.Unmarshal(curve, sw.PublicKey)
+
+    priv := new(ecdsa.PrivateKey)
+    priv.PublicKey.Curve = curve
+    priv.PublicKey.X = x
+    priv.PublicKey.Y = y
+    priv.D = new(big.Int).SetBytes(sw.PrivateKeyD)
+
+    return &Wallet{
+        PrivateKey: *priv,
+        PublicKey:  sw.PublicKey,
+    }
+}
+
 // *Used by the modified saveFile()
-func (w *Wallet) Bytes() ([]byte, []byte) {
-	return w.PrivateKey.D.Bytes(), w.PublicKey
-}
+// func (w *Wallet) Bytes() ([]byte, []byte) {
+// 	return w.PrivateKey.D.Bytes(), w.PublicKey
+// }
 
-// * Used by the modified loadFile()
-func (w *Wallet) LoadFromBytes(privKey, pubKey []byte) {
-	curve := elliptic.P256()
-	x, y := elliptic.Unmarshal(curve, pubKey)
+// // * Used by the modified loadFile()
+// func (w *Wallet) LoadFromBytes(privKey, pubKey []byte) {
+// 	curve := elliptic.P256()
+// 	x, y := elliptic.Unmarshal(curve, pubKey)
 
-	priv := new(ecdsa.PrivateKey)
-	priv.PublicKey.Curve = curve
-	priv.PublicKey.X = x
-	priv.PublicKey.Y = y
-	priv.D = new(big.Int).SetBytes(privKey)
+// 	priv := new(ecdsa.PrivateKey)
+// 	priv.PublicKey.Curve = curve
+// 	priv.PublicKey.X = x
+// 	priv.PublicKey.Y = y
+// 	priv.D = new(big.Int).SetBytes(privKey)
 
-	w.PrivateKey = *priv
-	w.PublicKey = pubKey
-}
+// 	w.PrivateKey = *priv
+// 	w.PublicKey = pubKey
+// }
