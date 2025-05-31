@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package wallet;
+
+// Specify the Go package path
+option go_package = "github.com/nthskyradiated/blockchain-in-golang/wallet/proto";
+
+// SerializableWallet definition
+message SerializableWallet {
+    bytes private_key_d = 1; // Private key's D value
+    bytes public_key = 2;    // Public key
+}
+
+// SerializableWallets definition
+message SerializableWallets {
+    map<string, SerializableWallet> wallets = 1; // Map of address to wallet
+}
