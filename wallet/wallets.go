@@ -14,11 +14,7 @@ type Wallets struct {
 	Wallets map[string]*Wallet
 }
 
-type SerializedWallet struct {
-	PrivateKey []byte
-	PublicKey  []byte
-}
-
+// * Added for the modified saveFile and loadFile methods
 type SerializedWallets struct {
 	Wallets map[string]SerializedWallet
 }
@@ -52,7 +48,7 @@ func (ws Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
 
-// * doesn't work. kept for reference
+// ! doesn't work. kept for reference
 // func (ws *Wallets) LoadFile() error {
 
 // 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
@@ -132,7 +128,7 @@ func (ws *Wallets) SaveFile() {
 	}
 }
 
-// * doesn't work. kept for reference
+// ! doesn't work. kept for reference
 // func (ws *Wallets) SaveFile() {
 // 	var content bytes.Buffer
 

@@ -24,6 +24,12 @@ type Wallet struct {
 	PublicKey []byte
 }
 
+// * Added for the modified saveFile and loadFile methods
+type SerializedWallet struct {
+	PrivateKey []byte
+	PublicKey  []byte
+}
+
 func (w Wallet) Address() []byte {
 	publicKeyHash := PublicKeyHash(w.PublicKey)
 	versionedPayload := append([]byte{version}, publicKeyHash...)
