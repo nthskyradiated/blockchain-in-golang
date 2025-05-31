@@ -2,27 +2,33 @@ package blockchain
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
-	// "crypto/sha256"
 )
 
 type Block struct {
 	Hash     []byte
-	Data     []byte
+	Transactions []*Transaction
 	PrevHash []byte
 	Nonce	int
 }
 
-// func (b *Block) DeriveHash() {
-// 	info := bytes.Join([][]byte{b.Data, b.PrevHash}, []byte{})
-// 	hash := sha256.Sum256(info)
-// 	b.Hash = hash[:]
-// }
 
-func CreateBlock(data string, prevHash []byte) *Block {
-	block := &Block{[]byte{}, []byte(data), prevHash, 0}
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	return txHash[:]
+}
+
+func CreateBlock(txs []*Transaction, prevHash []byte) *Block {
+	block := &Block{[]byte{}, txs, prevHash, 0}
 	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
 	block.Hash = hash[:]
@@ -30,8 +36,8 @@ func CreateBlock(data string, prevHash []byte) *Block {
 	return block
 }
 
-func GenesisBlock() *Block {
-	return CreateBlock("Genesis block", []byte{})
+func GenesisBlock(coinbase *Transaction) *Block {
+	return CreateBlock([]*Transaction{coinbase}, []byte{})
 }
 
 func (b *Block) Serialize() []byte {
