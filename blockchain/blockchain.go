@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-
 	"github.com/dgraph-io/badger"
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 )
