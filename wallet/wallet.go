@@ -5,7 +5,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
+	"math/big"
+
+	// "fmt"
 	"log"
 
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
@@ -29,9 +31,9 @@ func (w Wallet) Address() []byte {
 	fullPayload := append(versionedPayload, checksum...)
 	address := utils.Base58Encode(fullPayload)
 	
-	fmt.Printf("Pub Key: %x\n", w.PublicKey)
-	fmt.Printf("Pub hash: %x\n", publicKeyHash)
-	fmt.Printf("Address: %x\n", address)	
+	// fmt.Printf("Pub Key: %x\n", w.PublicKey)
+	// fmt.Printf("Pub hash: %x\n", publicKeyHash)
+	// fmt.Printf("Address: %x\n", address)	
 	
 	return address
 }
@@ -76,4 +78,24 @@ func Checksum(payload []byte) []byte {
 	hash = sha256.Sum256(hash[:])
 
 	return hash[:checksumLength]
+}
+
+// *Used by the modified saveFile()
+func (w *Wallet) Bytes() ([]byte, []byte) {
+	return w.PrivateKey.D.Bytes(), w.PublicKey
+}
+
+// * Used by the modified loadFile()
+func (w *Wallet) LoadFromBytes(privKey, pubKey []byte) {
+	curve := elliptic.P256()
+	x, y := elliptic.Unmarshal(curve, pubKey)
+
+	priv := new(ecdsa.PrivateKey)
+	priv.PublicKey.Curve = curve
+	priv.PublicKey.X = x
+	priv.PublicKey.Y = y
+	priv.D = new(big.Int).SetBytes(privKey)
+
+	w.PrivateKey = *priv
+	w.PublicKey = pubKey
 }
