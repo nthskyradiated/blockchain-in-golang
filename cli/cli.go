@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"runtime"
 	"strconv"
@@ -76,12 +77,17 @@ func (cli *CommandLine) createWallet() {
 }
 
 func (cli *CommandLine) getbalance(address string) {
+	if !wallet.ValidateAddress(address) {
+		log.Panicf("Invalid address: %s", address)
+	}
 
 	chain := blockchain.ContinueBlockChain(address)
 	defer chain.Database.Close()
 
 	balance := 0
-	UTXOs := chain.FindUTXOutputs(address)
+	pubKeyHash := utils.Base58Decode([]byte(address))
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	UTXOs := chain.FindUTXOutputs(pubKeyHash)
 
 	for _, out := range UTXOs {
 		balance += out.Value
@@ -90,7 +96,9 @@ func (cli *CommandLine) getbalance(address string) {
 }
 
 func (cli *CommandLine) send(from, to string, amount int) {
-
+	if !wallet.ValidateAddress(from) || !wallet.ValidateAddress(to) {
+		log.Panicf("Invalid address: from %s, to %s", from, to)
+	}
 	chain := blockchain.ContinueBlockChain(from)
 	defer chain.Database.Close()
 

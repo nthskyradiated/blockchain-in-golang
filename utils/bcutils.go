@@ -21,7 +21,7 @@ func Base58Encode(input []byte) []byte {
 	return []byte(encoded)
 }
 
-func Base58Decode(input string) []byte {
+func Base58Decode(input []byte) []byte {
 	decoded, err := base58.Decode(string(input[:]))
 
 	if err != nil {
