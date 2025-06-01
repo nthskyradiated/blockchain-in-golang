@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/gob"
 	"log"
+
 	"github.com/mr-tron/base58"
 )
 
@@ -21,7 +24,7 @@ func Base58Encode(input []byte) []byte {
 	return []byte(encoded)
 }
 
-func Base58Decode(input string) []byte {
+func Base58Decode(input []byte) []byte {
 	decoded, err := base58.Decode(string(input[:]))
 
 	if err != nil {
@@ -32,4 +35,12 @@ func Base58Decode(input string) []byte {
 		log.Panic("Decoded Base58 input is empty")
 	}
 	return decoded
+}
+
+func Serialize[T any](data T) []byte {
+	var encoded bytes.Buffer
+	encoder := gob.NewEncoder(&encoded)
+	err := encoder.Encode(data)
+	HandleError(err)
+	return encoded.Bytes()
 }

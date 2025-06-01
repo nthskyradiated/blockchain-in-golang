@@ -41,12 +41,9 @@ func GenesisBlock(coinbase *Transaction) *Block {
 }
 
 func (b *Block) Serialize() []byte {
-	var encoded bytes.Buffer
-	encode := gob.NewEncoder(&encoded)
-	err := encode.Encode(b)
-	utils.HandleError(err)
-	return encoded.Bytes()
+	return utils.Serialize(b)
 }
+
 
 func Deserialize(data []byte) *Block {
 	var block Block
