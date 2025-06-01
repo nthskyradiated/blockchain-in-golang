@@ -56,16 +56,29 @@ func ValidateAddress(address string) bool {
 	return bytes.Compare(actualChecksum, targetChecksum) == 0
 }
 
-func NewKeyPair() (ecdsa.PrivateKey, []byte)  {
-	curve := elliptic.P256()
-	private, err := ecdsa.GenerateKey(curve, rand.Reader)
+func NewKeyPair() (ecdsa.PrivateKey, []byte) {
+    curve := elliptic.P256()
+    private, err := ecdsa.GenerateKey(curve, rand.Reader)
 
-	if err != nil {
-		log.Panic(err)
-	}
+    if err != nil {
+        log.Panic(err)
+    }
 
-	public := append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)
-	return *private, public
+	public := elliptic.Marshal(curve, private.PublicKey.X, private.PublicKey.Y)
+	
+	// ? below is pretty much the same as the elliptic.Marshal call above
+	// ? kept here only for reference
+    // Add the uncompressed point prefix (0x04)
+    // public := append([]byte{0x04}, append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)...)
+    // log.Printf("Serialized Public Key: %x", public)
+
+    // // Test reconstruction
+    // x, y := elliptic.Unmarshal(curve, public)
+    // if x == nil || y == nil {
+    //     log.Panic("Failed to reconstruct public key")
+    // }
+
+    return *private, public
 }
 
 func CreateWallet() *Wallet {
