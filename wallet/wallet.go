@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -24,6 +25,16 @@ type Wallet struct {
 	PublicKey []byte
 }
 
+func ValidateAddress(address string) bool {
+
+	pubKeyHash := utils.Base58Decode([]byte(address))
+	actualChecksum := pubKeyHash[len(pubKeyHash)-checksumLength:]
+	version := pubKeyHash[0]
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-checksumLength]
+	targetChecksum := Checksum(append([]byte{version}, pubKeyHash...))
+
+	return bytes.Equal(actualChecksum, targetChecksum)
+}
 
 func (w Wallet) Address() []byte {
 	publicKeyHash := PublicKeyHash(w.PublicKey)
@@ -47,7 +58,7 @@ func NewKeyPair() (ecdsa.PrivateKey, []byte)  {
 		log.Panic(err)
 	}
 
-	public := append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)
+	public := elliptic.Marshal(curve, private.PublicKey.X, private.PublicKey.Y)
 	return *private, public
 }
 
