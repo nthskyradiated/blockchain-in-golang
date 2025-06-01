@@ -25,7 +25,7 @@ func (iter *BlockChainIterator) Next() *Block {
 			encodedBlock = append([]byte{}, val...)
 			return nil
 		})
-		block = Deserialize(encodedBlock)
+		block = utils.Deserialize[*Block](encodedBlock)
 		return err
 	})
 	utils.HandleError(err)
