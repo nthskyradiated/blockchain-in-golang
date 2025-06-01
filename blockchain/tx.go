@@ -1,20 +1,42 @@
 package blockchain
 
-type TXInput struct {
+import (
+	"bytes"
+
+	"github.com/nthskyradiated/blockchain-in-golang/utils"
+	"github.com/nthskyradiated/blockchain-in-golang/wallet"
+)
+
+type TxInput struct {
 	ID       []byte
 	OutIndex int
-	Sig      string
+	Sig      []byte
+	PubKey   []byte
 }
 
-type TXOutput struct {
+type TxOutput struct {
 	Value        int
-	ScriptPubKey string
+	ScriptPubKey []byte
 }
 
-func (in *TXInput) CanUnlock(data string) bool {
-	return in.Sig == data
+func (in *TxInput) UsesKey(pubKeyHash []byte) bool {
+	lockingHash := wallet.PublicKeyHash(in.PubKey)
+	return bytes.Equal(lockingHash, pubKeyHash)
 }
 
-func (out *TXOutput) CanBeUnlocked(data string) bool {
-	return out.ScriptPubKey == data
+func (out *TxOutput) Lock(address []byte) {
+	pubKeyHash := utils.Base58Decode([]byte(address))
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
+	out.ScriptPubKey = pubKeyHash
+}
+
+func (out *TxOutput) IsLockedWithKey(pubKeyHash []byte) bool {
+	// lockingHash := wallet.PublicKeyHash(out.ScriptPubKey)
+	return bytes.Equal(out.ScriptPubKey, pubKeyHash)
+}
+
+func NewTXOutput(value int, address string) *TxOutput {
+	out := &TxOutput{value, nil}
+	out.Lock([]byte(address))
+	return out
 }
