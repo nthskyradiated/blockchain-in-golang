@@ -23,14 +23,8 @@ type Transaction struct {
 	Outputs []TxOutput
 }
 
-func (tx Transaction) Serialize() []byte{
-	var encoded bytes.Buffer
-	encode := gob.NewEncoder(&encoded)
-	err := encode.Encode(tx)
-	if err != nil {
-		log.Panicf("Failed to serialize transaction: %v", err)
-	}
-	return encoded.Bytes()
+func (tx Transaction) Serialize() []byte {
+	return utils.Serialize(tx)
 }
 
 func (tx *Transaction) Hash() []byte {
@@ -119,6 +113,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	}
 	return true
 }
+
 
 func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
