@@ -44,3 +44,11 @@ func Serialize[T any](data T) []byte {
 	HandleError(err)
 	return encoded.Bytes()
 }
+
+func Deserialize[T any](data []byte) T {
+	var result T
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&result)
+	HandleError(err)
+	return result
+}

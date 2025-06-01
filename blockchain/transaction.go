@@ -126,7 +126,7 @@ func (tx *Transaction) SetID() {
 	tx.ID = hash[:]
 }
 
-func NewTransaction(from, to string, amount int, bc *BlockChain) *Transaction {
+func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
 
@@ -136,7 +136,7 @@ func NewTransaction(from, to string, amount int, bc *BlockChain) *Transaction {
 	pubKeyHash := wallet.PublicKeyHash(w.PublicKey)
 
 	// Find unspent transactions for the sender
-	acc, validOutputs := bc.FindSpendableOutputs(pubKeyHash, amount)
+	acc, validOutputs := UTXO.FindSpendableOutputs(pubKeyHash, amount)
 	if acc < amount {
 		log.Panicf("Not enough funds: %d < %d", acc, amount)
 	}
@@ -157,7 +157,7 @@ func NewTransaction(from, to string, amount int, bc *BlockChain) *Transaction {
 
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
-	bc.SignTransaction(&tx, w.PrivateKey)
+	UTXO.Blockchain.SignTransaction(&tx, w.PrivateKey)
 	return &tx
 }
 
