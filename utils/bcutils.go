@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
+
 	"github.com/mr-tron/base58"
 )
 
@@ -42,4 +43,12 @@ func Serialize[T any](data T) []byte {
 	err := encoder.Encode(data)
 	HandleError(err)
 	return encoded.Bytes()
+}
+
+func Deserialize[T any](data []byte) T {
+	var result T
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&result)
+	HandleError(err)
+	return result
 }
