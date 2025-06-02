@@ -114,23 +114,3 @@ func FromProtobuf(sw *SerializableWallet) *Wallet {
         PublicKey:  sw.PublicKey,
     }
 }
-
-// *Used by the modified saveFile()
-// func (w *Wallet) Bytes() ([]byte, []byte) {
-// 	return w.PrivateKey.D.Bytes(), w.PublicKey
-// }
-
-// // * Used by the modified loadFile()
-// func (w *Wallet) LoadFromBytes(privKey, pubKey []byte) {
-// 	curve := elliptic.P256()
-// 	x, y := elliptic.Unmarshal(curve, pubKey)
-
-// 	priv := new(ecdsa.PrivateKey)
-// 	priv.PublicKey.Curve = curve
-// 	priv.PublicKey.X = x
-// 	priv.PublicKey.Y = y
-// 	priv.D = new(big.Int).SetBytes(privKey)
-
-// 	w.PrivateKey = *priv
-// 	w.PublicKey = pubKey
-// }
