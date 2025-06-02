@@ -6,15 +6,15 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
-	"runtime"
 	"github.com/dgraph-io/badger"
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
+	"os"
+	"runtime"
 )
 
 const (
-	dbPath = "./tmp/blocks"
-	dbFile = "./tmp/blocks/MANIFEST"
+	dbPath      = "./tmp/blocks"
+	dbFile      = "./tmp/blocks/MANIFEST"
 	genesisData = "First Transaction from Genesis"
 )
 
@@ -22,7 +22,6 @@ type BlockChain struct {
 	LastHash []byte
 	Database *badger.DB
 }
-
 
 func DBExists() bool {
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
@@ -40,17 +39,16 @@ func (bc *BlockChain) AddBlock(transactions []*Transaction) *Block {
 		err = item.Value(func(val []byte) error {
 			lastHash = append([]byte{}, val...)
 			return nil
-			})
-		return err 
 		})
+		return err
+	})
 	utils.HandleError(err)
-
 
 	newBlock := CreateBlock(transactions, lastHash)
 
 	err = bc.Database.Update(func(txn *badger.Txn) error {
-	err := txn.Set(newBlock.Hash, newBlock.Serialize())
-	utils.HandleError(err)
+		err := txn.Set(newBlock.Hash, newBlock.Serialize())
+		utils.HandleError(err)
 		err = txn.Set([]byte("lh"), newBlock.Hash)
 		bc.LastHash = newBlock.Hash
 		return err
@@ -71,7 +69,7 @@ func NewBlockChain(address string) *BlockChain {
 	utils.HandleError(err)
 
 	err = db.Update(func(txn *badger.Txn) error {
-	cbtx := CoinbaseTx(address, genesisData)
+		cbtx := CoinbaseTx(address, genesisData)
 		genesis := GenesisBlock(cbtx)
 		fmt.Println("Genesis Block Created")
 		err := txn.Set(genesis.Hash, genesis.Serialize())
@@ -99,7 +97,7 @@ func ContinueBlockChain(address string) *BlockChain {
 	err = db.Update(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte("lh"))
 		utils.HandleError(err)
-			err = item.Value(func(val []byte) error {
+		err = item.Value(func(val []byte) error {
 			lastHash = append([]byte{}, val...)
 			return nil
 		})
@@ -111,7 +109,7 @@ func ContinueBlockChain(address string) *BlockChain {
 }
 
 func (bc *BlockChain) FindUTXOutputs() map[string]TxOutputs {
-	UTXOs := make(map[string]TxOutputs) 
+	UTXOs := make(map[string]TxOutputs)
 	spentTxos := make(map[string][]int)
 	iter := bc.Iterator()
 	for {
@@ -119,7 +117,7 @@ func (bc *BlockChain) FindUTXOutputs() map[string]TxOutputs {
 		for _, tx := range block.Transactions {
 			txID := hex.EncodeToString(tx.ID)
 
-			Outputs:
+		Outputs:
 			for outIdx, out := range tx.Outputs {
 				if spentTxos[txID] != nil {
 					for _, spentOutIdx := range spentTxos[txID] {
@@ -131,18 +129,18 @@ func (bc *BlockChain) FindUTXOutputs() map[string]TxOutputs {
 				outs := UTXOs[txID]
 				outs.Outputs = append(outs.Outputs, out)
 				UTXOs[txID] = outs
-		}
+			}
 			if !tx.IsCoinbase() {
 				for _, in := range tx.Inputs {
-						inID := hex.EncodeToString(in.ID)
-						spentTxos[inID] = append(spentTxos[inID], in.OutIndex)
+					inID := hex.EncodeToString(in.ID)
+					spentTxos[inID] = append(spentTxos[inID], in.OutIndex)
 				}
 			}
-	}
+		}
 		if len(block.PrevHash) == 0 {
 			break
 		}
-	}	
+	}
 	return UTXOs
 }
 
@@ -174,7 +172,9 @@ func (bc *BlockChain) SignTransaction(tx *Transaction, privateKey ecdsa.PrivateK
 }
 
 func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
-
+	if tx.IsCoinbase() {
+		return true
+	}
 	prevTXs := make(map[string]Transaction)
 	for _, in := range tx.Inputs {
 		prevTX, err := bc.FindTransaction(in.ID)
