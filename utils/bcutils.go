@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
-
 	"github.com/mr-tron/base58"
 )
 

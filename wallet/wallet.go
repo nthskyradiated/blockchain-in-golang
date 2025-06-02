@@ -7,7 +7,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"math/big"
-	// "fmt"
 	"log"
 
 	"github.com/nthskyradiated/blockchain-in-golang/utils"

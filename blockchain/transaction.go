@@ -87,6 +87,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	}
 
 	txCopy := tx.TrimmedCopy()
+	fmt.Println(txCopy)
 	curve := elliptic.P256()
 	for i, input := range tx.Inputs {
 		prevTX := prevTXs[hex.EncodeToString(input.ID)]
@@ -103,25 +104,21 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		y := new(big.Int).SetBytes(input.PubKey[len(input.PubKey)/2:])
 
 		rawPubKey := ecdsa.PublicKey{Curve: curve, X: x, Y: y}
-
+		
 		if !ecdsa.Verify(&rawPubKey, txCopy.ID, r, s) {
 			return false
 		}
 	}
 	return true
 }
-
-func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
+func NewTransaction(w *wallet.Wallet, to string, amount int, UTXO *UTXOSet) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
 
-	wallets, err := wallet.NewWallets()
-	utils.HandleError(err)
-	w := wallets.GetWallet(from)
 	pubKeyHash := wallet.PublicKeyHash(w.PublicKey)
 
-	// Find unspent transactions for the sender
 	acc, validOutputs := UTXO.FindSpendableOutputs(pubKeyHash, amount)
+
 	if acc < amount {
 		log.Panicf("Not enough funds: %d < %d", acc, amount)
 	}
@@ -129,23 +126,21 @@ func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
 	for txid, outs := range validOutputs {
 		txID, err := hex.DecodeString(txid)
 		utils.HandleError(err)
-
 		for _, out := range outs {
 			input := TxInput{txID, out, nil, w.PublicKey}
 			inputs = append(inputs, input)
 		}
-	}	
+	}
+	from := string(w.Address())
 	outputs = append(outputs, *NewTXOutput(amount, to))
 	if acc > amount {
 		outputs = append(outputs, *NewTXOutput(acc - amount, from))
 	}
-
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
 	UTXO.Blockchain.SignTransaction(&tx, w.PrivateKey)
 	return &tx
 }
-
 func CoinbaseTx(to, data string) *Transaction {
 	if data == "" {
 		randData := make([]byte, 24)

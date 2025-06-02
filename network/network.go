@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"slices"
 	"syscall"
-
 	"github.com/nthskyradiated/blockchain-in-golang/blockchain"
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 	DEATH "github.com/vrecan/death/v3"
@@ -312,7 +311,7 @@ func MineTx(chain *blockchain.BlockChain) {
 	txs = append(txs, cbTx)
 
 	newBlock := chain.MineBlock(txs)
-	UTXOSet  := blockchain.UTXOSet{chain}
+	UTXOSet  := blockchain.UTXOSet{Blockchain: chain}
 	UTXOSet.Reindex()
 
 	fmt.Println("New Block mined")

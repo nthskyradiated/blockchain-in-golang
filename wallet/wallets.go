@@ -1,13 +1,13 @@
 package wallet
 
 import (
-	"bytes"
-	"encoding/gob"
+	"fmt"
 	"log"
 	"os"
+	"github.com/nthskyradiated/blockchain-in-golang/utils"
 )
 
-const walletFile = "./tmp/wallets.data"
+const walletFile = "./tmp/wallets_%s.data"
 
 type Wallets struct {
 	Wallets map[string]*Wallet
@@ -18,18 +18,18 @@ type SerializedWallets struct {
 	Wallets map[string]SerializedWallet
 }
 
-func NewWallets() (*Wallets, error) {
+func NewWallets(nodeId string) (*Wallets, error) {
 	ws := Wallets{}
 	ws.Wallets = make(map[string]*Wallet)
-	err := ws.LoadFile()
+	err := ws.LoadFile(nodeId)
 	return &ws, err
 }
 
-func (ws *Wallets) AddWallet() string {
+func (ws *Wallets) AddWallet(nodeId string) string {
 	wallet := CreateWallet()
 	address := string(wallet.Address())
 	ws.Wallets[address] = wallet
-	ws.SaveFile()
+	ws.SaveFile(nodeId)
 	log.Printf("New wallet created with address: %s", address)
 	return address
 }
@@ -47,8 +47,9 @@ func (ws Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
 
-func (ws *Wallets) LoadFile() error {
-	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
+func (ws *Wallets) LoadFile(nodeId string) error {
+	walletFile := fmt.Sprintf(walletFile, nodeId)
+	if _, err := os.Stat(walletFile); os.IsNotExist(err) {	
 		return err
 	}
 
@@ -57,12 +58,14 @@ func (ws *Wallets) LoadFile() error {
 		return err
 	}
 
-	var serialized SerializedWallets
-	decoder := gob.NewDecoder(bytes.NewReader(fileContent))
-	err = decoder.Decode(&serialized)
-	if err != nil {
-		return err
-	}
+	// var serialized SerializedWallets
+	// decoder := gob.NewDecoder(bytes.NewReader(fileContent))
+	// err = decoder.Decode(&serialized)
+	// if err != nil {
+	// 	return err
+	// }
+	serialized := utils.Deserialize[SerializedWallets](fileContent)
+
 
 	wallets := make(map[string]*Wallet)
 	for addr, data := range serialized.Wallets {
@@ -75,7 +78,8 @@ func (ws *Wallets) LoadFile() error {
 	return nil
 }
 
-func (ws *Wallets) SaveFile() {
+func (ws *Wallets) SaveFile(nodeId string) {
+	walletFile := fmt.Sprintf(walletFile, nodeId)
 	serialized := SerializedWallets{
 		Wallets: make(map[string]SerializedWallet),
 	}
@@ -88,15 +92,7 @@ func (ws *Wallets) SaveFile() {
 		}
 	}
 
-	var content bytes.Buffer
-	encoder := gob.NewEncoder(&content)
-	err := encoder.Encode(serialized)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = os.WriteFile(walletFile, content.Bytes(), 0644)
-	if err != nil {
-		log.Panic(err)
-	}
+content := utils.Serialize(serialized)
+	err := os.WriteFile(walletFile, content, 0644)
+	utils.HandleError(err)
 }
