@@ -1,7 +1,6 @@
 package wallet
 
 import (
-	// "crypto/elliptic"
 	"log"
 	"os"
 	"google.golang.org/protobuf/proto"
@@ -41,32 +40,6 @@ func (ws *Wallets) GetAllAddresses() []string {
 func (ws Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
-
-// ! doesn't work. kept for reference
-// func (ws *Wallets) LoadFile() error {
-
-// 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
-// 		return err
-// 	}
-
-// 	var wallets Wallets
-// 	fileContent, err := os.ReadFile(walletFile)
-
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	gob.Register(elliptic.P256())
-// 	decoder := gob.NewDecoder(bytes.NewReader(fileContent))
-// 	err = decoder.Decode(&wallets)
-
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	ws.Wallets = wallets.Wallets
-// 	return nil
-// }
 
 func (ws *Wallets) SaveFile() {
     serialized := &SerializableWallets{
@@ -112,22 +85,3 @@ func (ws *Wallets) LoadFile() error {
     ws.Wallets = wallets
     return nil
 }
-
-// ! doesn't work. kept for reference
-// func (ws *Wallets) SaveFile() {
-// 	var content bytes.Buffer
-
-// 	gob.Register(elliptic.P256())
-// 	encoder := gob.NewEncoder(&content)
-// 	err := encoder.Encode(ws)
-
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-
-// 	err = os.WriteFile(walletFile, content.Bytes(), 0644)
-
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-// }

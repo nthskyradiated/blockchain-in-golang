@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-
 	"github.com/dgraph-io/badger"
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 )
@@ -111,48 +110,6 @@ func ContinueBlockChain(address string) *BlockChain {
 	return &bc
 }
 
-func (bc *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
-	var unspentTxs []Transaction
-	spentTXOs := make(map[string][]int)
-
-	iter := bc.Iterator()
-	for {
-		block := iter.Next()
-		for _, tx := range block.Transactions {
-			txID := hex.EncodeToString(tx.ID)
-
-			Outputs:
-			for outIdx, out := range tx.Outputs {
-				if spentTXOs[txID] != nil {
-					for _, spentOutIdx := range spentTXOs[txID] {
-						if spentOutIdx == outIdx {
-							continue Outputs
-						}
-					}
-				}
-				if out.IsLockedWithKey(pubKeyHash) {
-					unspentTxs = append(unspentTxs, *tx)
-					fmt.Printf("Found unspent transaction: %s\n", txID)
-				}
-			}
-
-			if !tx.IsCoinbase() {
-				for _, in := range tx.Inputs {
-					if in.UsesKey(pubKeyHash) {
-						inID := hex.EncodeToString(in.ID)
-						spentTXOs[inID] = append(spentTXOs[inID], in.OutIndex)
-					}
-				}
-			}
-
-		}
-		if len(block.PrevHash) == 0 {
-			break
-		}
-	}
-	return unspentTxs
-}
-
 func (bc *BlockChain) FindUTXOutputs() map[string]TxOutputs {
 	UTXOs := make(map[string]TxOutputs) 
 	spentTxos := make(map[string][]int)
@@ -187,27 +144,6 @@ func (bc *BlockChain) FindUTXOutputs() map[string]TxOutputs {
 		}
 	}	
 	return UTXOs
-}
-
-func (bc *BlockChain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
-	unspentOutputs := make(map[string][]int)
-	unspentTxs := bc.FindUnspentTransactions(pubKeyHash)
-	accumulated := 0
-
-	Work:
-	for _, tx := range unspentTxs {
-		txID := hex.EncodeToString(tx.ID)
-		for outIdx, out := range tx.Outputs {
-			if out.IsLockedWithKey(pubKeyHash) && accumulated < amount {
-				accumulated += out.Value
-				unspentOutputs[txID] = append(unspentOutputs[txID], outIdx)
-			}
-			if accumulated >= amount {
-				break Work
-			}
-		}
-	}
-	return accumulated, unspentOutputs
 }
 
 func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {

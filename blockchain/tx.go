@@ -2,8 +2,6 @@ package blockchain
 
 import (
 	"bytes"
-	"encoding/gob"
-
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 	"github.com/nthskyradiated/blockchain-in-golang/wallet"
 )
@@ -48,12 +46,4 @@ func NewTXOutput(value int, address string) *TxOutput {
 
 func (outs TxOutputs) Serialize() []byte {
 	return utils.Serialize(outs)
-}
-
-func DeserializeOutputs(data []byte) TxOutputs {
-	var outs TxOutputs
-	decoder := gob.NewDecoder(bytes.NewReader(data))
-	err := decoder.Decode(&outs)
-	utils.HandleError(err)
-	return outs
 }

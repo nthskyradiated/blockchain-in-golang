@@ -51,7 +51,7 @@ func (u *UTXOSet) Update(block *Block) {
 				v, err := item.ValueCopy(nil)
 				utils.HandleError(err)
 
-				outs := DeserializeOutputs(v)
+				outs := utils.Deserialize[TxOutputs](v)
 				for outIdx, out := range outs.Outputs {
 					if outIdx != input.OutIndex {
 						updatedOuts.Outputs = append(updatedOuts.Outputs, out)
@@ -155,7 +155,7 @@ func (u UTXOSet) FindUnspentTransactions(pubKeyHash []byte) []TxOutput {
 			item := it.Item()
 			v, err := item.ValueCopy(nil)
 			utils.HandleError(err)
-			outs := DeserializeOutputs(v)
+			outs := utils.Deserialize[TxOutputs](v)
 			for _, out := range outs.Outputs {
 				if out.IsLockedWithKey(pubKeyHash) {
 					unspentTxs = append(unspentTxs, out)
@@ -167,9 +167,6 @@ func (u UTXOSet) FindUnspentTransactions(pubKeyHash []byte) []TxOutput {
 	utils.HandleError(err)	
 	return unspentTxs
 }
-
-
-
 
 func (u UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
 	unspentOuts := make(map[string][]int)
@@ -190,7 +187,7 @@ func (u UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[s
 			utils.HandleError(err)
 			k = bytes.TrimPrefix(k, utxoPrefix)
 			txID := hex.EncodeToString(k)
-			outs := DeserializeOutputs(v)
+			outs := utils.Deserialize[TxOutputs](v)
 
 			for outIdx, out := range outs.Outputs {
 				if out.IsLockedWithKey(pubKeyHash) && accumulated < amount {

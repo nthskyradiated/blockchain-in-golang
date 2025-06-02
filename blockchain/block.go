@@ -3,8 +3,6 @@ package blockchain
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/gob"
-
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 )
 
@@ -42,13 +40,4 @@ func GenesisBlock(coinbase *Transaction) *Block {
 
 func (b *Block) Serialize() []byte {
 	return utils.Serialize(b)
-}
-
-
-func Deserialize(data []byte) *Block {
-	var block Block
-	decoder := gob.NewDecoder(bytes.NewReader(data))
-	err := decoder.Decode(&block)
-	utils.HandleError(err)
-	return &block
 }
