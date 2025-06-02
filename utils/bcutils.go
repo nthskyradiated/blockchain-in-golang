@@ -52,3 +52,15 @@ func Deserialize[T any](data []byte) T {
 	HandleError(err)
 	return result
 }
+
+func DecodePayload[T any](request []byte, commandLength int) T {
+    var buff bytes.Buffer
+    var payload T
+
+    buff.Write(request[commandLength:])
+    decoder := gob.NewDecoder(&buff)
+    err := decoder.Decode(&payload)
+    HandleError(err)
+
+    return payload
+}
