@@ -65,18 +65,6 @@ func NewKeyPair() (ecdsa.PrivateKey, []byte) {
 
 	public := elliptic.Marshal(curve, private.PublicKey.X, private.PublicKey.Y)
 	
-	// ? below is pretty much the same as the elliptic.Marshal call above
-	// ? kept here only for reference
-    // Add the uncompressed point prefix (0x04)
-    // public := append([]byte{0x04}, append(private.PublicKey.X.Bytes(), private.PublicKey.Y.Bytes()...)...)
-    // log.Printf("Serialized Public Key: %x", public)
-
-    // // Test reconstruction
-    // x, y := elliptic.Unmarshal(curve, public)
-    // if x == nil || y == nil {
-    //     log.Panic("Failed to reconstruct public key")
-    // }
-
     return *private, public
 }
 
