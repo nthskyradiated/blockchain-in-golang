@@ -7,11 +7,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/nthskyradiated/blockchain-in-golang/utils"
+	"github.com/nthskyradiated/blockchain-in-golang/wallet"
 	"log"
 	"math/big"
 	"strings"
-	"github.com/nthskyradiated/blockchain-in-golang/utils"
-	"github.com/nthskyradiated/blockchain-in-golang/wallet"
 )
 
 type Transaction struct {
@@ -36,31 +36,74 @@ func (tx *Transaction) IsCoinbase() bool {
 	return len(tx.Inputs) == 1 && len(tx.Inputs[0].ID) == 0 && tx.Inputs[0].OutIndex == -1
 }
 
+// func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {
+// 	if tx.IsCoinbase() {
+// 		return
+// 	}
+
+// 	for _, input := range tx.Inputs {
+// 		if prevTXs[hex.EncodeToString(input.ID)].ID == nil {
+// 			log.Panicf("Previous transaction not found: %x", input.ID)
+// 		}
+// 	}
+// 	txCopy := tx.TrimmedCopy()
+
+// 	for i, input := range txCopy.Inputs {
+// 		prevTX := prevTXs[hex.EncodeToString(input.ID)]
+// 		txCopy.Inputs[i].Sig = nil // Clear the signature for signing
+// 		txCopy.Inputs[i].PubKey = prevTX.Outputs[input.OutIndex].ScriptPubKey
+// 		txCopy.ID = txCopy.Hash()
+
+// 		dataToSign := fmt.Sprintf("%x\n", txCopy)
+
+// 		r, s, err := ecdsa.Sign(rand.Reader, &privKey, []byte(dataToSign))
+		
+// 		log.Printf("Signing Transaction: ID=%x", tx.ID)
+// 		log.Printf("Public Key: %x", privKey.PublicKey.X.Bytes())
+// 		log.Printf("Signature: R=%x, S=%x", r.Bytes(), s.Bytes())
+// 		utils.HandleError(err)
+// 		signature := append(r.Bytes(), s.Bytes()...)
+// 		tx.Inputs[i].Sig = signature
+// 		txCopy.Inputs[i].PubKey = nil
+// 	}
+// }
+
 func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {
-	if tx.IsCoinbase() {
-		return
-	}
+    if tx.IsCoinbase() {
+        return
+    }
 
-	for _, input := range tx.Inputs {
-		if prevTXs[hex.EncodeToString(input.ID)].ID == nil {
-			log.Panicf("Previous transaction not found: %x", input.ID)
-		}
-	}
-	txCopy := tx.TrimmedCopy()
+    for _, input := range tx.Inputs {
+        if prevTXs[hex.EncodeToString(input.ID)].ID == nil {
+            log.Panicf("Previous transaction not found: %x", input.ID)
+        }
+    }
 
-	for i, input := range txCopy.Inputs {
-		prevTX := prevTXs[hex.EncodeToString(input.ID)]
-		txCopy.Inputs[i].Sig = nil // Clear the signature for signing
-		txCopy.Inputs[i].PubKey = prevTX.Outputs[input.OutIndex].ScriptPubKey
-		txCopy.ID = txCopy.Hash()
-		txCopy.Inputs[i].PubKey = nil
+    txCopy := tx.TrimmedCopy()
 
-		r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
-		utils.HandleError(err)
-		signature := append(r.Bytes(), s.Bytes()...)
+    for i, input := range txCopy.Inputs {
+        prevTX := prevTXs[hex.EncodeToString(input.ID)]
+        txCopy.Inputs[i].Sig = nil // Clear the signature for signing
+        txCopy.Inputs[i].PubKey = prevTX.Outputs[input.OutIndex].ScriptPubKey
+        txCopy.ID = txCopy.Hash()
+        txCopy.Inputs[i].PubKey = nil
+
+        r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
+        utils.HandleError(err)
+
+        // Combine R and S into a single signature
+        signature := append(r.Bytes(), s.Bytes()...)
+
+		// Populate the transaction input fields
 		tx.Inputs[i].Sig = signature
-	}
+		tx.Inputs[i].PubKey = append(privKey.PublicKey.X.Bytes(), privKey.PublicKey.Y.Bytes()...)
+
+		log.Printf("Signing Transaction: ID=%x", tx.ID)
+        log.Printf("Public Key: %x", tx.Inputs[i].PubKey)
+        log.Printf("Signature: R=%x, S=%x", r.Bytes(), s.Bytes())
+    }
 }
+
 
 func (tx *Transaction) TrimmedCopy() Transaction {
 	var outputs []TxOutput
@@ -71,7 +114,7 @@ func (tx *Transaction) TrimmedCopy() Transaction {
 	for _, out := range tx.Outputs {
 		outputs = append(outputs, TxOutput{out.Value, out.ScriptPubKey})
 	}
-	txCopy := Transaction{ tx.ID, inputs, outputs }
+	txCopy := Transaction{tx.ID, inputs, outputs}
 	return txCopy
 }
 
@@ -87,6 +130,7 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 	}
 
 	txCopy := tx.TrimmedCopy()
+	fmt.Println(txCopy)
 	curve := elliptic.P256()
 	for i, input := range tx.Inputs {
 		prevTX := prevTXs[hex.EncodeToString(input.ID)]
@@ -94,34 +138,30 @@ func (tx *Transaction) Verify(prevTXs map[string]Transaction) bool {
 		txCopy.Inputs[i].PubKey = prevTX.Outputs[input.OutIndex].ScriptPubKey
 		txCopy.ID = txCopy.Hash()
 		txCopy.Inputs[i].PubKey = nil
-
+		log.Printf("Transaction Hash: %x", txCopy.ID)
 		r := new(big.Int).SetBytes(input.Sig[:len(input.Sig)/2])
 		s := new(big.Int).SetBytes(input.Sig[len(input.Sig)/2:])
-
+		log.Printf("Signature Components: R=%x, S=%x", r, s)
 
 		x := new(big.Int).SetBytes(input.PubKey[:len(input.PubKey)/2])
 		y := new(big.Int).SetBytes(input.PubKey[len(input.PubKey)/2:])
 
 		rawPubKey := ecdsa.PublicKey{Curve: curve, X: x, Y: y}
-
+		log.Printf("Reconstructed Public Key: X=%x, Y=%x", x, y)
 		if !ecdsa.Verify(&rawPubKey, txCopy.ID, r, s) {
 			return false
 		}
 	}
 	return true
 }
-
-func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
+func NewTransaction(w *wallet.Wallet, to string, amount int, UTXO *UTXOSet) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
 
-	wallets, err := wallet.NewWallets()
-	utils.HandleError(err)
-	w := wallets.GetWallet(from)
 	pubKeyHash := wallet.PublicKeyHash(w.PublicKey)
 
-	// Find unspent transactions for the sender
 	acc, validOutputs := UTXO.FindSpendableOutputs(pubKeyHash, amount)
+
 	if acc < amount {
 		log.Panicf("Not enough funds: %d < %d", acc, amount)
 	}
@@ -129,23 +169,21 @@ func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
 	for txid, outs := range validOutputs {
 		txID, err := hex.DecodeString(txid)
 		utils.HandleError(err)
-
 		for _, out := range outs {
 			input := TxInput{txID, out, nil, w.PublicKey}
 			inputs = append(inputs, input)
 		}
-	}	
+	}
+	from := string(w.Address())
 	outputs = append(outputs, *NewTXOutput(amount, to))
 	if acc > amount {
-		outputs = append(outputs, *NewTXOutput(acc - amount, from))
+		outputs = append(outputs, *NewTXOutput(acc-amount, from))
 	}
-
 	tx := Transaction{nil, inputs, outputs}
 	tx.ID = tx.Hash()
 	UTXO.Blockchain.SignTransaction(&tx, w.PrivateKey)
 	return &tx
 }
-
 func CoinbaseTx(to, data string) *Transaction {
 	if data == "" {
 		randData := make([]byte, 24)

@@ -1,8 +1,10 @@
 package wallet
 
 import (
+	"fmt"
 	"log"
 	"os"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -12,18 +14,18 @@ type Wallets struct {
 	Wallets map[string]*Wallet
 }
 
-func NewWallets() (*Wallets, error) {
+func NewWallets(nodeId string) (*Wallets, error) {
 	ws := Wallets{}
 	ws.Wallets = make(map[string]*Wallet)
-	err := ws.LoadFile()
+	err := ws.LoadFile(nodeId)
 	return &ws, err
 }
 
-func (ws *Wallets) AddWallet() string {
+func (ws *Wallets) AddWallet(nodeId string) string {
 	wallet := CreateWallet()
 	address := string(wallet.Address())
 	ws.Wallets[address] = wallet
-	ws.SaveFile()
+	ws.SaveFile(nodeId)
 	log.Printf("New wallet created with address: %s", address)
 	return address
 }
@@ -41,7 +43,8 @@ func (ws Wallets) GetWallet(address string) Wallet {
 	return *ws.Wallets[address]
 }
 
-func (ws *Wallets) SaveFile() {
+func (ws *Wallets) SaveFile(nodeId string) {
+	walletFile := fmt.Sprintf(walletFile, nodeId)
     serialized := &SerializableWallets{
         Wallets: make(map[string]*SerializableWallet),
     }
@@ -61,7 +64,8 @@ func (ws *Wallets) SaveFile() {
     }
 }
 
-func (ws *Wallets) LoadFile() error {
+func (ws *Wallets) LoadFile(nodeId string) error {
+	walletFile := fmt.Sprintf(walletFile, nodeId)
     if _, err := os.Stat(walletFile); os.IsNotExist(err) {
         return err
     }
