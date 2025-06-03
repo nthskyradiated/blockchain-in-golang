@@ -34,7 +34,6 @@ func (out *TxOutput) Lock(address []byte) {
 }
 
 func (out *TxOutput) IsLockedWithKey(pubKeyHash []byte) bool {
-	// lockingHash := wallet.PublicKeyHash(out.ScriptPubKey)
 	return bytes.Equal(out.ScriptPubKey, pubKeyHash)
 }
 

@@ -10,19 +10,7 @@ import (
 	"math/big"
 )
 
-// Take data from the block
-
-// Create a counter (nonce) which starts at 0
-
-// Create a hash of the block data + nonce
-
-// Check the hash if it meets a set of requirements (difficulty)
-
-// Requirements:
-// 1. The hash must start with a certain number of zeros
-// 2. The hash must be less than a target value
-
-const Difficulty = 8
+const Difficulty = 12
 type ProofOfWork struct {
 	Block  *Block
 	Target *big.Int

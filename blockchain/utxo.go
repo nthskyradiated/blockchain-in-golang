@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"log"
-
 	"github.com/dgraph-io/badger"
 	"github.com/nthskyradiated/blockchain-in-golang/utils"
 )
 
 var (
 	utxoPrefix   = []byte("utxo-")
-	// prefixLength = len(utxoPrefix)
 )
 
 type UTXOSet struct {

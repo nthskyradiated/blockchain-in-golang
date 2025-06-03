@@ -57,7 +57,7 @@ func (tx *Transaction) IsCoinbase() bool {
 // 		dataToSign := fmt.Sprintf("%x\n", txCopy)
 
 // 		r, s, err := ecdsa.Sign(rand.Reader, &privKey, []byte(dataToSign))
-		
+
 // 		log.Printf("Signing Transaction: ID=%x", tx.ID)
 // 		log.Printf("Public Key: %x", privKey.PublicKey.X.Bytes())
 // 		log.Printf("Signature: R=%x, S=%x", r.Bytes(), s.Bytes())
@@ -69,41 +69,40 @@ func (tx *Transaction) IsCoinbase() bool {
 // }
 
 func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transaction) {
-    if tx.IsCoinbase() {
-        return
-    }
+	if tx.IsCoinbase() {
+		return
+	}
 
-    for _, input := range tx.Inputs {
-        if prevTXs[hex.EncodeToString(input.ID)].ID == nil {
-            log.Panicf("Previous transaction not found: %x", input.ID)
-        }
-    }
+	for _, input := range tx.Inputs {
+		if prevTXs[hex.EncodeToString(input.ID)].ID == nil {
+			log.Panicf("Previous transaction not found: %x", input.ID)
+		}
+	}
 
-    txCopy := tx.TrimmedCopy()
+	txCopy := tx.TrimmedCopy()
 
-    for i, input := range txCopy.Inputs {
-        prevTX := prevTXs[hex.EncodeToString(input.ID)]
-        txCopy.Inputs[i].Sig = nil // Clear the signature for signing
-        txCopy.Inputs[i].PubKey = prevTX.Outputs[input.OutIndex].ScriptPubKey
-        txCopy.ID = txCopy.Hash()
-        txCopy.Inputs[i].PubKey = nil
+	for i, input := range txCopy.Inputs {
+		prevTX := prevTXs[hex.EncodeToString(input.ID)]
+		txCopy.Inputs[i].Sig = nil // Clear the signature for signing
+		txCopy.Inputs[i].PubKey = prevTX.Outputs[input.OutIndex].ScriptPubKey
+		txCopy.ID = txCopy.Hash()
+		txCopy.Inputs[i].PubKey = nil
 
-        r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
-        utils.HandleError(err)
+		r, s, err := ecdsa.Sign(rand.Reader, &privKey, txCopy.ID)
+		utils.HandleError(err)
 
-        // Combine R and S into a single signature
-        signature := append(r.Bytes(), s.Bytes()...)
+		// Combine R and S into a single signature
+		signature := append(r.Bytes(), s.Bytes()...)
 
 		// Populate the transaction input fields
 		tx.Inputs[i].Sig = signature
 		tx.Inputs[i].PubKey = append(privKey.PublicKey.X.Bytes(), privKey.PublicKey.Y.Bytes()...)
 
 		log.Printf("Signing Transaction: ID=%x", tx.ID)
-        log.Printf("Public Key: %x", tx.Inputs[i].PubKey)
-        log.Printf("Signature: R=%x, S=%x", r.Bytes(), s.Bytes())
-    }
+		log.Printf("Public Key: %x", tx.Inputs[i].PubKey)
+		log.Printf("Signature: R=%x, S=%x", r.Bytes(), s.Bytes())
+	}
 }
-
 
 func (tx *Transaction) TrimmedCopy() Transaction {
 	var outputs []TxOutput
